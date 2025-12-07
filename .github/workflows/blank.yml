@@ -1,0 +1,28 @@
+name: Build Windows DLL
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build DLL
+      run: |
+        cl /LD /Fe:api.dll main.cpp /link user32.lib kernel32.lib advapi32.lib
+        # Add more .lib files for specific exclusive APIs as needed
+
+    - name: Upload DLL
+      uses: actions/upload-artifact@v4
+      with:
+        name: api-dll
+        path: api.dll
