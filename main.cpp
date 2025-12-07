@@ -6,42 +6,37 @@
 #include <roapi.h>
 
 using namespace winrt;
-using namespace Windows::Data::Xml::Dom;
-using namespace Windows::UI::Notifications;
+using namespace winrt::Windows::Data::Xml::Dom;
+using namespace winrt::Windows::UI::Notifications;
 
 #pragma comment(lib, "windowsapp.lib")
-
-// Callback for toast activation (buttons clicked)
-void CALLBACK ToastActivated(const char* args) {
-    // MinGW app can poll this or use shared memory/WM_COPYDATA for results
-    OutputDebugStringA(args);  // Log button args for debugging
-}
+#pragma comment(lib, "runtimeobject.lib")
 
 extern "C" {
-    __declspec(dllexport) BOOL ShowToast(const char* title, const char* body, const char* button1, const char* button1Arg) {
+    __declspec(dllexport) BOOL WINAPI ShowToast(const char* title, const char* body) {
         init_apartment();
         
-        XmlDocument doc;
-        doc.LoadXml(LR"(<toast>
-            <visual>
-                <binding template="ToastGeneric">
-                    <text>" + std::wstring(title, title + strlen(title)) + L"</text>
-                    <text>" + std::wstring(body, body + strlen(body)) + L"</text>
-                </binding>
-            </visual>
-            <actions>
-                <action content="OK" arguments="action=ok"/>
-                <action content=")" + std::wstring(button1, button1 + strlen(button1)) + L"\" arguments=\"" + std::wstring(button1Arg, button1Arg + strlen(button1Arg)) + L"\"/>
-            </actions>
-        </toast>)");
+        auto doc = XmlDocument();
+        std::wstring xml = L"<toast>"
+            L"<visual>"
+            L"  <binding template=\"ToastGeneric\">"
+            L"    <text>" + winrt::to_hstring(title) + L"</text>"
+            L"    <text>" + winrt::to_hstring(body) + L"</text>"
+            L"  </binding>"
+            L"</visual>"
+            L"<actions>"
+            L"  <action content=\"OK\" arguments=\"action=ok\"/>"
+            L"</actions>"
+            L"</toast>";
         
-        ToastNotification toast{doc};
+        doc.LoadXml(xml);
+        ToastNotification toast(doc);
         auto notifier = ToastNotificationManager::CreateToastNotifier();
         notifier.Show(toast);
         return TRUE;
     }
     
-    __declspec(dllexport) BOOL InitToast() {
+    __declspec(dllexport) BOOL WINAPI InitToast() {
         return SUCCEEDED(RoInitialize(RO_INIT_MULTITHREADED));
     }
 }
